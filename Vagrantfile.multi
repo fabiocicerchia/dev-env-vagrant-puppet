@@ -18,7 +18,7 @@
 #         :box      => 'precise64',
 #         :box_url  => 'http://files.vagrantup.com/precise64.box',
 #         :configs  => { :cpus => 1, :memory => 512 },
-          :shares   => true,
+#         :shares   => true,
 #     },
 #     :bar => {
 #         :hostname => 'default.virtual.vstone.eu',
@@ -60,34 +60,41 @@ instances = {
     },
 }
 
-Vagrant::Config.run do |config|
+Vagrant.configure('2') do |config|
     config.vm.box     = 'precise64'
     config.vm.box_url = 'http://files.vagrantup.com/precise64.box'
 
-    boxes.each do |opts|
-        config.vm.define opts[:name] do |config|
+    instances.each do |name,opts|
+        config.vm.define name do |config|
             config.vm.box     = opts[:box] if opts[:box]
             config.vm.box_url = opts[:box_url] if opts[:box_url]
 
-            opts[:configs].each do |key,value|
-                config.vm.customize ['modifyvm', :id, '--#{key}', value]
+            config.vm.provider :virtualbox do |virtualbox|
+                opts[:configs].each do |key,value|
+                    directive = '--%s' % key
+                    virtualbox.customize [
+                        'modifyvm', :id,
+                        directive, value
+                    ]
+                end
             end
 
-            opts[:forwards].each do |from,to|
-                config.vm.forward_port from, to
+            if defined? opts[:forwards]
+                opts[:forwards].each do |from,to|
+                    config.vm.network :forwarded_port, guest: from, host: to
+                end
             end
 
-            config.vm.network :hostonly, opts[:ip]
-            config.vm.host_name = '%s.vagrant' % opts[:name].to_s
-            config.vm.host_name = opts[:hostname] if opts[:hostname]
+            config.vm.network :private_network, ip: opts[:ip]
+            config.vm.hostname = '%s.vagrant' % name.to_s.gsub('_', '-')
+            config.vm.hostname = opts[:hostname] if opts[:hostname]
 
-            # use nfs rather than VirtualBox shared files. It's heaps faster.
-            config.vm.share_folder 'www', '/var/www/', './www', :create => true, :nfs => true if opts[:shares]
+            config.vm.synced_folder 'www', '/var/www/' if opts[:shares]
 
             config.vm.provision :puppet do |puppet|
                 puppet.manifests_path = 'manifests'
                 puppet.module_path    = 'modules'
-                puppet.manifest_file  = '#{opts[:name]}.pp'
+                puppet.manifest_file  = '%s.pp' % name
                 #puppet.options        = '--verbose --debug'
             end
         end
