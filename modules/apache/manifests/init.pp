@@ -1,7 +1,7 @@
 class apache {
   # Make sure apache is present
   package {'apache2':
-    ensure => '2.2.22-1ubuntu1.2',
+    ensure => '2.2.22-1ubuntu1*',
   }
 
   # Make sure apache is running
@@ -15,6 +15,13 @@ class apache {
   file {'myusj-vhost-logs':
     ensure => 'directory',
     path   => '/var/www/logs',
+  }
+
+  file {'apache lock dir':
+    ensure => 'directory',
+    path   => '/var/lock/apache2',
+    owner   => 'vagrant',
+    group   => 'www-data',
   }
 
   # Create a virtual host file for our website

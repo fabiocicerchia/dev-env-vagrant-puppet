@@ -1,16 +1,15 @@
 class mysql {
     package { 'mysql-server':
-        ensure => '5.5.29-0ubuntu0.12.04.2',
+        ensure => installed,
     }
 
-    package { 'php5-mysql':
-        ensure => '5.3.10-1ubuntu3.5',
+    package { 'mysql':
+        ensure => installed,
     }
 
-    # Make sure mongodb is running
-    service {'mysql':
-        ensure  => running,
-        # Make sure mysql is installed before checking
+    service { 'mysqld':
+        enable => true,
+        ensure => running,
         require => Package['mysql-server'],
     }
 }

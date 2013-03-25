@@ -1,0 +1,54 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+boxes = [
+    {
+        :name     => :web,
+        :ip       => '192.168.33.10',
+        :shares   => true,
+        :port_map => { 80 => 9980, 22 => 2201 },
+        :configs  => {
+            :cpus   => 1,
+            :memory => 512,
+        }
+    },
+    {
+        :name      => :db,
+        :ip        => '192.168.33.20',
+        :port_map => { 3306 => 9936, 22   => 2202 },
+        :configs  => {
+            :cpus   => 1,
+            :memory => 512,
+        }
+    },
+]
+
+Vagrant::Config.run do |config|
+    boxes.each do |opts|
+        config.vm.define opts[:name] do |config|
+            config.vm.box     = "precise64"
+            config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+
+            opts[:configs].each do |key,value|
+                config.vm.customize ["modifyvm", :id, "--#{key}", value]
+            end
+
+            opts[:port_map].each do |from,to|
+                config.vm.forward_port from, to
+            end
+
+            config.vm.network :hostonly, opts[:ip]
+            config.vm.host_name = "%s.vagrant" % opts[:name].to_s
+
+            # use nfs rather than VirtualBox shared files. It's heaps faster.
+            config.vm.share_folder "www", "/var/www/", "./www", :create => true, :nfs => true if opts[:shares]
+
+            config.vm.provision :puppet do |puppet|
+                puppet.manifests_path = "manifests"
+                puppet.module_path    = "modules"
+                puppet.manifest_file  = "#{opts[:name]}.pp"
+                #puppet.options        = "--verbose --debug"
+            end
+        end
+    end
+end
