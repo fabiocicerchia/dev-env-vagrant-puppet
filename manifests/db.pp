@@ -11,14 +11,17 @@ exec { 'apt allow unauthenticated':
   command => "/bin/echo 'APT::Get::AllowUnauthenticated \"true\";' | /usr/bin/sudo /usr/bin/tee /etc/apt/apt.conf.d/allow-unauthenticated > /dev/null"
 }
 
-class db {
-  $utils = [ 'curl', 'git', 'acl', 'vim' ]
-  # Make sure some useful utiliaries are present
-  package { $utils:
-    ensure => present,
-  }
-
-  include mysql
+# install mysql
+class { 'mysql':
+  root_password => 'root',
 }
 
-include db
+# create the database
+mysql::grant { 'database_name':
+  mysql_privileges => 'ALL',
+  mysql_password => 'db_pass',
+  mysql_db => 'database_name',
+  mysql_user => 'db_user',
+  mysql_host => 'localhost',
+  mysql_grant_filepath => '/root/mysql',
+}

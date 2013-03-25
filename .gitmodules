@@ -1,0 +1,45 @@
+[submodule "modules/puppet-php"]
+	path = modules/puppet-php
+	url = git://github.com/example42/puppet-php.git
+[submodule "modules/nagios"]
+	path = modules/nagios
+	url = git://github.com/example42/puppet-nagios.git
+[submodule "modules/perl"]
+	path = modules/perl
+	url = git://github.com/example42/puppet-perl.git
+[submodule "modules/mysql"]
+	path = modules/mysql
+	url = git://github.com/example42/puppet-mysql.git
+[submodule "modules/sendmail"]
+	path = modules/sendmail
+	url = git://github.com/example42/puppet-sendmail.git
+[submodule "modules/postgresql"]
+	path = modules/postgresql
+	url = git://github.com/example42/puppet-postgresql.git
+[submodule "modules/postfix"]
+	path = modules/postfix
+	url = git://github.com/example42/puppet-postfix.git
+[submodule "modules/vim"]
+	path = modules/vim
+	url = git://github.com/example42/puppet-vim.git
+[submodule "modules/redis"]
+	path = modules/redis
+	url = git://github.com/example42/puppet-redis.git
+[submodule "modules/orientdb"]
+	path = modules/orientdb
+	url = git://github.com/example42/puppet-orientdb.git
+[submodule "modules/nginx"]
+	path = modules/nginx
+	url = git://github.com/example42/puppet-nginx.git
+[submodule "modules/jenkins"]
+	path = modules/jenkins
+	url = git://github.com/example42/puppet-jenkins.git
+[submodule "modules/puppet-apache"]
+	path = modules/puppet-apache
+	url = git://github.com/example42/puppet-apache.git
+[submodule "modules/monitor"]
+	path = modules/monitor
+	url = git://github.com/example42/puppet-monitor.git
+[submodule "modules/puppi"]
+	path = modules/puppi
+	url = git://github.com/example42/puppi.git
