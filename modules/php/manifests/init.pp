@@ -4,6 +4,11 @@ class php {
     ensure => '5.3.10-1ubuntu3',
   }
 
+  package {'php5-cli':
+    ensure => present,
+    require => Package['php5'],
+  }
+
   package {'php-apc':
     ensure => '3.1.7-1',
     require => Package['php5'],
