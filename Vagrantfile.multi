@@ -1,53 +1,94 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-boxes = [
-    {
-        :name     => :web,
-        :ip       => '192.168.33.10',
+# A hash table of boxes to define.
+# This is a lot cleaner imho than all
+# those config.vm.define blocks.
+#
+# Each key will be used as the box name.
+# The value should also be a hash.
+#
+# Example:
+#
+# {
+#     :foo => {
+#         :hostname => 'test.virtual.vstone.eu',
+#         :ip       => '192.168.100.10',
+#         :forwards => { 80 => 20080, 443 => 20443, },
+#         :box      => 'precise64',
+#         :box_url  => 'http://files.vagrantup.com/precise64.box',
+#         :configs  => { :cpus => 1, :memory => 512 },
+          :shares   => true,
+#     },
+#     :bar => {
+#         :hostname => 'default.virtual.vstone.eu',
+#     }
+#     ## No boxes beyond this point :)
+# }
+#
+instances = {
+    :load_balancer => {
+        :ip        => '192.168.10.1',
+        :forwards  => { 80 => 20080, 443 => 20443 },
+        :configs   => { :cpus => 1, :memory => 512 },
+    },
+    :web01 => {
+        :ip       => '192.168.10.10',
+        :forwards => { 80 => 9980, 22 => 2201 },
+        :configs  => { :cpus => 1, :memory => 512 },
         :shares   => true,
-        :port_map => { 80 => 9980, 22 => 2201 },
-        :configs  => {
-            :cpus   => 1,
-            :memory => 512,
-        }
     },
-    {
-        :name      => :db,
-        :ip        => '192.168.33.20',
-        :port_map => { 3306 => 9936, 22   => 2202 },
-        :configs  => {
-            :cpus   => 1,
-            :memory => 512,
-        }
+    :web02 => {
+        :ip       => '192.168.10.11',
+        :forwards => { 80 => 9980, 22 => 2201 },
+        :configs  => { :cpus => 1, :memory => 512 },
+        :shares   => true,
     },
-]
+    :db01 => {
+        :ip       => '192.168.20.20',
+        :forwards => { 3306 => 9936, 22 => 2202 },
+        :configs  => { :cpus => 1, :memory => 512 },
+    },
+    :db02 => {
+        :ip       => '192.168.20.21',
+        :forwards => { 3306 => 9936, 22 => 2202 },
+        :configs  => { :cpus => 1, :memory => 512 },
+    },
+    :monitor => {
+        :ip       => '192.168.30.30',
+        :configs  => { :cpus => 1, :memory => 512 },
+    },
+}
 
 Vagrant::Config.run do |config|
+    config.vm.box     = 'precise64'
+    config.vm.box_url = 'http://files.vagrantup.com/precise64.box'
+
     boxes.each do |opts|
         config.vm.define opts[:name] do |config|
-            config.vm.box     = "precise64"
-            config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+            config.vm.box     = opts[:box] if opts[:box]
+            config.vm.box_url = opts[:box_url] if opts[:box_url]
 
             opts[:configs].each do |key,value|
-                config.vm.customize ["modifyvm", :id, "--#{key}", value]
+                config.vm.customize ['modifyvm', :id, '--#{key}', value]
             end
 
-            opts[:port_map].each do |from,to|
+            opts[:forwards].each do |from,to|
                 config.vm.forward_port from, to
             end
 
             config.vm.network :hostonly, opts[:ip]
-            config.vm.host_name = "%s.vagrant" % opts[:name].to_s
+            config.vm.host_name = '%s.vagrant' % opts[:name].to_s
+            config.vm.host_name = opts[:hostname] if opts[:hostname]
 
             # use nfs rather than VirtualBox shared files. It's heaps faster.
-            config.vm.share_folder "www", "/var/www/", "./www", :create => true, :nfs => true if opts[:shares]
+            config.vm.share_folder 'www', '/var/www/', './www', :create => true, :nfs => true if opts[:shares]
 
             config.vm.provision :puppet do |puppet|
-                puppet.manifests_path = "manifests"
-                puppet.module_path    = "modules"
-                puppet.manifest_file  = "#{opts[:name]}.pp"
-                #puppet.options        = "--verbose --debug"
+                puppet.manifests_path = 'manifests'
+                puppet.module_path    = 'modules'
+                puppet.manifest_file  = '#{opts[:name]}.pp'
+                #puppet.options        = '--verbose --debug'
             end
         end
     end
