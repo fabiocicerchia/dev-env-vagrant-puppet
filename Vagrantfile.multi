@@ -56,6 +56,7 @@ instances = {
     },
     :monitor => {
         :ip       => '192.168.30.30',
+        :forwards => { 80 => 9980, 22 => 2201 },
         :configs  => { :cpus => 1, :memory => 512 },
     },
 }
@@ -79,10 +80,8 @@ Vagrant.configure('2') do |config|
                 end
             end
 
-            if defined? opts[:forwards]
-                opts[:forwards].each do |from,to|
-                    config.vm.network :forwarded_port, guest: from, host: to
-                end
+            opts[:forwards].each do |from,to|
+                config.vm.network :forwarded_port, guest: from, host: to
             end
 
             config.vm.network :private_network, ip: opts[:ip]
