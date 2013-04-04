@@ -12,6 +12,7 @@
 #
 # {
 #     :foo => {
+#         :puppet   => 'conf.pp',
 #         :hostname => 'test.virtual.vstone.eu',
 #         :ip       => '192.168.100.10',
 #         :forwards => { 80 => 20080, 443 => 20443, },
@@ -20,50 +21,58 @@
 #         :configs  => { :cpus => 1, :memory => 512 },
 #         :shares   => true,
 #     },
-#     :bar => {
-#         :hostname => 'default.virtual.vstone.eu',
-#     }
 #     ## No boxes beyond this point :)
 # }
 #
 instances = {
-    :load_balancer => {
-        :ip        => '192.168.10.1',
-        :forwards  => { 80 => 20080, 443 => 20443 },
-        :configs   => { :cpus => 1, :memory => 512 },
-    },
+#    :load_balancer => {
+#        :puppet   => 'load_balancer.pp',
+#        :ip        => '192.168.10.1',
+#        :forwards  => { 80 => 20080, 443 => 20443 },
+#        :configs   => { :cpus => 1, :memory => 512 },
+#    },
     :web01 => {
-        :ip       => '192.168.10.10',
-        :forwards => { 80 => 9980, 22 => 2201 },
+        :puppet   => 'web.pp',
+#        :ip       => '192.168.10.10',
+        :hostname => 'appserver01.local',
+        :ip       => '33.33.33.10',
+        :forwards => { 80 => 9980 },
         :configs  => { :cpus => 1, :memory => 512 },
         :shares   => true,
     },
-    :web02 => {
-        :ip       => '192.168.10.11',
-        :forwards => { 80 => 9980, 22 => 2201 },
-        :configs  => { :cpus => 1, :memory => 512 },
-        :shares   => true,
-    },
+#    :web02 => {
+#        :puppet   => 'web.pp',
+#        :ip       => '192.168.10.11',
+#        :forwards => { 80 => 9980 },
+#        :configs  => { :cpus => 1, :memory => 512 },
+#        :shares   => true,
+#    },
     :db01 => {
-        :ip       => '192.168.20.20',
-        :forwards => { 3306 => 9936, 22 => 2202 },
+        :puppet   => 'db.pp',
+        :ip       => '33.33.33.11',
+        :hostname => 'dbserver01.local',
+        :forwards => { 3306 => 9936 },
         :configs  => { :cpus => 1, :memory => 512 },
     },
-    :db02 => {
-        :ip       => '192.168.20.21',
-        :forwards => { 3306 => 9936, 22 => 2202 },
-        :configs  => { :cpus => 1, :memory => 512 },
-    },
-    :monitor => {
-        :ip       => '192.168.30.30',
-        :forwards => { 80 => 9980, 22 => 2201 },
-        :configs  => { :cpus => 1, :memory => 512 },
-    },
+#    :db02 => {
+#        :puppet   => 'db.pp',
+#        :ip       => '192.168.20.21',
+#        :forwards => { 3306 => 9936 },
+#        :configs  => { :cpus => 1, :memory => 512 },
+#    },
+#    :monitor => {
+#        :puppet   => 'monitor.pp',
+#        :ip       => '192.168.30.30',
+#        :forwards => { 80 => 9980 },
+#        :configs  => { :cpus => 1, :memory => 512 },
+#    },
 }
 
 Vagrant.configure('2') do |config|
-    config.vm.box     = 'precise64'
-    config.vm.box_url = 'http://files.vagrantup.com/precise64.box'
+    #config.vm.box     = 'precise64'
+    #config.vm.box_url = 'http://files.vagrantup.com/precise64.box'
+    config.vm.box     = 'lucid64'
+    config.vm.box_url = 'http://files.vagrantup.com/lucid64.box'
 
     instances.each do |name,opts|
         config.vm.define name do |config|
@@ -87,6 +96,7 @@ Vagrant.configure('2') do |config|
             config.vm.network :private_network, ip: opts[:ip]
             config.vm.hostname = '%s.vagrant' % name.to_s.gsub('_', '-')
             config.vm.hostname = opts[:hostname] if opts[:hostname]
+            name = opts[:puppet] if opts[:puppet]
 
             config.vm.synced_folder 'www', '/var/www/' if opts[:shares]
 
