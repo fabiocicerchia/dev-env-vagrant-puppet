@@ -1,6 +1,3 @@
-[submodule "modules/puppet-php"]
-	path = modules/puppet-php
-	url = git://github.com/example42/puppet-php.git
 [submodule "modules/nagios"]
 	path = modules/nagios
 	url = git://github.com/example42/puppet-nagios.git
@@ -31,9 +28,6 @@
 [submodule "modules/jenkins"]
 	path = modules/jenkins
 	url = git://github.com/example42/puppet-jenkins.git
-[submodule "modules/puppet-apache"]
-	path = modules/puppet-apache
-	url = git://github.com/example42/puppet-apache.git
 [submodule "modules/monitor"]
 	path = modules/monitor
 	url = git://github.com/example42/puppet-monitor.git
