@@ -33,20 +33,19 @@ instances = {
 #    },
     :web01 => {
         :puppet   => 'web.pp',
-#        :ip       => '192.168.10.10',
-        :hostname => 'appserver01.local',
+        :ip       => '192.168.10.10',
         :ip       => '33.33.33.10',
         :forwards => { 80 => 9980 },
         :configs  => { :cpus => 1, :memory => 512 },
         :shares   => true,
     },
-#    :web02 => {
-#        :puppet   => 'web.pp',
-#        :ip       => '192.168.10.11',
-#        :forwards => { 80 => 9980 },
-#        :configs  => { :cpus => 1, :memory => 512 },
-#        :shares   => true,
-#    },
+    :web02 => {
+        :puppet   => 'web.pp',
+        :ip       => '192.168.10.11',
+        :forwards => { 80 => 9980 },
+        :configs  => { :cpus => 1, :memory => 512 },
+        :shares   => true,
+    },
     :db01 => {
         :puppet   => 'db.pp',
         :ip       => '33.33.33.11',
@@ -54,12 +53,12 @@ instances = {
         :forwards => { 3306 => 9936 },
         :configs  => { :cpus => 1, :memory => 512 },
     },
-#    :db02 => {
-#        :puppet   => 'db.pp',
-#        :ip       => '192.168.20.21',
-#        :forwards => { 3306 => 9936 },
-#        :configs  => { :cpus => 1, :memory => 512 },
-#    },
+    :db02 => {
+        :puppet   => 'db.pp',
+        :ip       => '192.168.20.21',
+        :forwards => { 3306 => 9936 },
+        :configs  => { :cpus => 1, :memory => 512 },
+    },
 #    :monitor => {
 #        :puppet   => 'monitor.pp',
 #        :ip       => '192.168.30.30',
@@ -69,10 +68,8 @@ instances = {
 }
 
 Vagrant.configure('2') do |config|
-    #config.vm.box     = 'precise64'
-    #config.vm.box_url = 'http://files.vagrantup.com/precise64.box'
-    config.vm.box     = 'lucid64'
-    config.vm.box_url = 'http://files.vagrantup.com/lucid64.box'
+    config.vm.box     = 'precise64'
+    config.vm.box_url = 'http://files.vagrantup.com/precise64.box'
 
     instances.each do |name,opts|
         config.vm.define name do |config|
@@ -96,14 +93,16 @@ Vagrant.configure('2') do |config|
             config.vm.network :private_network, ip: opts[:ip]
             config.vm.hostname = '%s.vagrant' % name.to_s.gsub('_', '-')
             config.vm.hostname = opts[:hostname] if opts[:hostname]
-            name = opts[:puppet] if opts[:puppet]
+
+            puppet_config = '%s.pp' % name
+            puppet_config = opts[:puppet] if opts[:puppet]
 
             config.vm.synced_folder 'www', '/var/www/' if opts[:shares]
 
             config.vm.provision :puppet do |puppet|
                 puppet.manifests_path = 'manifests'
                 puppet.module_path    = 'modules'
-                puppet.manifest_file  = '%s.pp' % name
+                puppet.manifest_file  = puppet_config
                 #puppet.options        = '--verbose --debug'
             end
         end
