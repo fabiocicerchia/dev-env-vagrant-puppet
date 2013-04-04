@@ -1,17 +1,64 @@
-exec { 'apt-get update':
-  command => "/usr/bin/apt-get update",
-  onlyif => "/bin/bash -c 'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))'"
+# PUPPET #######################################################################
+group { 'puppet':
+    ensure => 'present'
 }
 
-class project {
-  $utils = [ 'curl', 'git', 'acl', 'vim' ]
-  # Make sure some useful utiliaries are present
-  package { $utils:
-    ensure => present,
-  }
-
-  include apache
-  include php
+# PUPPI ########################################################################
+# Provided by Example42
+# https://github.com/example42/puppi/blob/master/README.md
+################################################################################
+class { 'puppi':
+    install_dependencies => false,
 }
 
-include project
+# UPDATE PACKAGE LIST ##########################################################
+exec { 'update-package-list':
+    command => '/usr/bin/sudo /usr/bin/apt-get update',
+}
+
+# APACHE MODULE ################################################################
+# Provided by Example42
+# https://github.com/example42/puppet-apache/blob/master/README.md
+################################################################################
+class { 'apache':
+    puppi   => true,
+    monitor => no,
+    require => Exec['update-package-list'],
+}
+
+apache::module { 'rewrite': }
+
+apache::vhost { 'default':
+    docroot     => '/var/www/',
+    server_name => false,
+    priority    => '',
+    template    => 'apache/virtualhost/vhost.conf.erb',
+}
+
+# MYSQL MODULE #################################################################
+# Provided by Example42
+# https://github.com/example42/puppet-mysql/blob/master/README.md
+################################################################################
+class { 'mysql':
+    puppi         => true,
+    root_password => 'root',
+    require       => Exec['update-package-list'],
+}
+
+# PHP MODULE ###################################################################
+# Provided by Example42
+# https://github.com/example42/puppet-php/blob/master/README.md
+################################################################################
+class { 'php':
+    require => Exec['update-package-list'],
+}
+php::module { 'pear':
+    module_prefix => 'php-',
+}
+php::module { 'curl': }
+php::module { 'apc':
+    module_prefix => 'php-',
+}
+php::module { 'gd': }
+php::module { 'mysql': }
+php::module { 'xdebug': }
