@@ -4,7 +4,17 @@ Development Environment with Vagrant and Puppet
 Requirements
 ------------
 
- * Vagrant v1.1.2
+ * Vagrant v1.1.2+
+
+Installation
+------------
+
+    wget http://files.vagrantup.com/packages/64e360814c3ad960d810456add977fd4c7d47ce6/vagrant_x86_64.deb -O /tmp/vagrant.deb
+    dpkg -i /tmp/vagrant.deb
+    git clone git://github.com/fabiocicerchia/dev-env-vagrant-puppet.git
+    cd dev-env-vagrant-puppet
+    ln -s Vagrantfile.single Vagrantfile # You can choose which environment use
+    vagrant up
 
 Virtual Machines
 ----------------

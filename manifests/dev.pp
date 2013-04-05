@@ -19,6 +19,34 @@ exec { 'update-package-list':
     onlyif  => '/bin/bash -c \'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))\''
 }
 
+# UTILITY STUFF ################################################################
+class utils {
+    $utils = [ 'curl', 'git', 'git-flow', 'vim', 'wkhtmltopdf', 'make' ]
+
+    # Make sure some useful utiliaries are present
+    package { $utils:
+        ensure => present,
+    }
+
+    exec { 'vim-configs':
+        command => '/usr/bin/git clone git://github.com/fabiocicerchia/VIM-Configs.git /home/vagrant/VIM-Configs && cd /home/vagrant/VIM-Configs && git submodule init && git submodule update && ln -s /home/vagrant/VIM-Configs/.vimrc /home/vagrant/.vimrc && ln -s /home/vagrant/VIM-Configs/.vim /home/vagrant/.vim && vim +BundleInstall +qall',
+        require => [ Package['git'], Package['vim'] ],
+    }
+
+    exec { 'git-extras':
+        command => '/usr/bin/git clone --depth 1 https://github.com/visionmedia/git-extras.git /tmp/git-extras && cd /tmp/git-extras && sudo make install',
+        require => [ Package['git'], Package['make'] ],
+    }
+
+    # TODO: Configure it
+    exec { 'scm-breeze':
+        command => '/usr/bin/git clone git://github.com/ndbroadbent/scm_breeze.git ~/.scm_breeze && ~/.scm_breeze/install.sh',
+        require => Package['git'],
+    }
+}
+
+include utils
+
 # APACHE MODULE ################################################################
 class { 'apache':
     puppi   => true,
@@ -69,6 +97,24 @@ php::module { 'gd': }
 php::module { 'mysql': }
 php::module { 'xdebug': }
 
+# PHP-CS-FIXER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+exec { 'php-cs-fixer':
+    command => '/usr/bin/wget http://cs.sensiolabs.org/get/php-cs-fixer.phar -O /usr/local/bin/php-cs-fixer && sudo chmod a+x /usr/local/bin/php-cs-fixer',
+    require => Class['php'],
+}
+
+# COMPOSER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+exec { 'composer':
+    command => '/usr/bin/curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer',
+    require => [ Class['php'], Package['curl'] ],
+}
+
+
+# BEHAT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+exec { 'behat':
+    command => '/usr/bin/wget https://github.com/downloads/Behat/Behat/behat.phar -O /usr/local/bin/behat && sudo chmod a+x /usr/local/bin/behat',
+}
+
 # PEAR Stuff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 exec { 'pear upgrade':
     command => '/usr/bin/pear upgrade',
@@ -78,12 +124,12 @@ exec { 'pear upgrade':
 
 exec { 'pear auto_discover' :
     command => '/usr/bin/pear config-set auto_discover 1',
-    require => [Package['php-pear']]
+    require => [ Package['php-pear'] ],
 }
 
 exec { 'pear update-channels' :
     command => '/usr/bin/pear update-channels',
-    require => [Package['php-pear'], Exec['pear auto_discover']]
+    require => [ Package['php-pear'], Exec['pear auto_discover'] ],
 }
 
 # PEAR Modules ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -170,5 +216,11 @@ exec { 'pear install phpDocumentor':
     command => '/usr/bin/pear install --alldeps pear.phpdoc.org/phpDocumentor-2.0.0a12',
     creates => '/usr/bin/phpdoc',
     onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpdoc | wc -l ) == 0 ))\'',
+    require => Exec['pear update-channels']
+}
+
+# Install vfsStream
+exec { 'pear install vfsStream':
+    command => '/usr/bin/pear install --alldeps pear.bovigo.org/vfsStream-beta',
     require => Exec['pear update-channels']
 }
