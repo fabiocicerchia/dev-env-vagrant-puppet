@@ -1,13 +1,6 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# A hash table of boxes to define.
-# This is a lot cleaner imho than all
-# those config.vm.define blocks.
-#
-# Each key will be used as the box name.
-# The value should also be a hash.
-#
 # Example:
 #
 # {
@@ -21,20 +14,18 @@
 #         :configs  => { :cpus => 1, :memory => 512 },
 #         :shares   => true,
 #     },
-#     ## No boxes beyond this point :)
 # }
 #
 instances = {
-#    :load_balancer => {
-#        :puppet   => 'load_balancer.pp',
-#        :ip        => '192.168.10.1',
-#        :forwards  => { 80 => 20080, 443 => 20443 },
-#        :configs   => { :cpus => 1, :memory => 512 },
-#    },
+    :load_balancer => {
+        :puppet   => 'load_balancer.pp',
+        :ip       => '192.168.10.1',
+        :forwards => { 80 => 20080, 443 => 20443 },
+        :configs  => { :cpus => 1, :memory => 512 },
+    },
     :web01 => {
         :puppet   => 'web.pp',
         :ip       => '192.168.10.10',
-        :ip       => '33.33.33.10',
         :forwards => { 80 => 9980 },
         :configs  => { :cpus => 1, :memory => 512 },
         :shares   => true,
@@ -48,7 +39,7 @@ instances = {
     },
     :db01 => {
         :puppet   => 'db.pp',
-        :ip       => '33.33.33.11',
+        :ip       => '192.168.20.20',
         :hostname => 'dbserver01.local',
         :forwards => { 3306 => 9936 },
         :configs  => { :cpus => 1, :memory => 512 },
@@ -59,12 +50,12 @@ instances = {
         :forwards => { 3306 => 9936 },
         :configs  => { :cpus => 1, :memory => 512 },
     },
-#    :monitor => {
-#        :puppet   => 'monitor.pp',
-#        :ip       => '192.168.30.30',
-#        :forwards => { 80 => 9980 },
-#        :configs  => { :cpus => 1, :memory => 512 },
-#    },
+    :monitor => {
+        :puppet   => 'monitor.pp',
+        :ip       => '192.168.30.30',
+        :forwards => { 80 => 9980 },
+        :configs  => { :cpus => 1, :memory => 512 },
+    },
 }
 
 Vagrant.configure('2') do |config|
