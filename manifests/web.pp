@@ -16,7 +16,8 @@ class { 'puppi':
 # UPDATE PACKAGE LIST ##########################################################
 exec { 'update-package-list':
     command => '/usr/bin/sudo /usr/bin/apt-get update',
-    onlyif  => '/bin/bash -c \'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))\''
+    onlyif  => '/bin/bash -c \'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))\'',
+    require => Exec['fix-dns-issue'],
 }
 
 # APACHE MODULE ################################################################
@@ -71,12 +72,12 @@ exec { 'pear upgrade':
 
 exec { 'pear auto_discover' :
     command => '/usr/bin/pear config-set auto_discover 1',
-    require => [Package['php-pear']]
+    require => [ Package['php-pear'] ],
 }
 
 exec { 'pear update-channels' :
     command => '/usr/bin/pear update-channels',
-    require => [Package['php-pear'], Exec['pear auto_discover']]
+    require => [ Package['php-pear'], Exec['pear auto_discover'] ],
 }
 
 # PEAR Modules ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -163,5 +164,11 @@ exec { 'pear install phpDocumentor':
     command => '/usr/bin/pear install --alldeps pear.phpdoc.org/phpDocumentor-2.0.0a12',
     creates => '/usr/bin/phpdoc',
     onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpdoc | wc -l ) == 0 ))\'',
+    require => Exec['pear update-channels']
+}
+
+# Install vfsStream
+exec { 'pear install vfsStream':
+    command => '/usr/bin/pear install --alldeps pear.bovigo.org/vfsStream-beta',
     require => Exec['pear update-channels']
 }

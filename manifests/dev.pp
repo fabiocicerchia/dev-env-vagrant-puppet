@@ -16,7 +16,8 @@ class { 'puppi':
 # UPDATE PACKAGE LIST ##########################################################
 exec { 'update-package-list':
     command => '/usr/bin/sudo /usr/bin/apt-get update',
-    onlyif  => '/bin/bash -c \'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))\''
+    onlyif  => '/bin/bash -c \'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))\'',
+    require => Exec['fix-dns-issue'],
 }
 
 # UTILITY STUFF ################################################################
@@ -25,7 +26,8 @@ class utils {
 
     # Make sure some useful utiliaries are present
     package { $utils:
-        ensure => present,
+        ensure  => present,
+        require => Exec['fix-dns-issue'],
     }
 
     exec { 'vim-configs':
@@ -113,6 +115,7 @@ exec { 'composer':
 # BEHAT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 exec { 'behat':
     command => '/usr/bin/wget https://github.com/downloads/Behat/Behat/behat.phar -O /usr/local/bin/behat && sudo chmod a+x /usr/local/bin/behat',
+    require => Class['php'],
 }
 
 # PEAR Stuff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
