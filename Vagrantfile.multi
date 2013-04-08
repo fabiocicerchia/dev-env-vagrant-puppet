@@ -7,8 +7,8 @@
 #     :foo => {
 #         :puppet   => 'conf.pp',
 #         :hostname => 'test.virtual.vstone.eu',
-#         :ip       => '192.168.100.10',
-#         :forwards => { 80 => 20080, 443 => 20443, },
+#         :ip       => '172.16.0.0',
+#         :forwards => { 80 => 8080, 443 => 20443, },
 #         :box      => 'precise64',
 #         :box_url  => 'http://files.vagrantup.com/precise64.box',
 #         :configs  => { :cpus => 1, :memory => 512 },
@@ -19,42 +19,42 @@
 instances = {
     :load_balancer => {
         :puppet   => 'load_balancer.pp',
-        :ip       => '192.168.10.1',
+        :ip       => '172.16.1.1',
         :forwards => { 80 => 20080, 443 => 20443 },
-        :configs  => { :cpus => 1, :memory => 512 },
+        :configs  => { :cpus => 1, :memory => 256 },
     },
     :web01 => {
         :puppet   => 'web.pp',
-        :ip       => '192.168.10.10',
+        :ip       => '172.16.2.1',
         :forwards => { 80 => 9980 },
-        :configs  => { :cpus => 1, :memory => 512 },
+        :configs  => { :cpus => 1, :memory => 256 },
         :shares   => true,
     },
     :web02 => {
         :puppet   => 'web.pp',
-        :ip       => '192.168.10.11',
+        :ip       => '172.16.2.2',
         :forwards => { 80 => 9980 },
-        :configs  => { :cpus => 1, :memory => 512 },
+        :configs  => { :cpus => 1, :memory => 256 },
         :shares   => true,
     },
     :db01 => {
         :puppet   => 'db.pp',
-        :ip       => '192.168.20.20',
+        :ip       => '172.16.3.1',
         :hostname => 'dbserver01.local',
         :forwards => { 3306 => 9936 },
-        :configs  => { :cpus => 1, :memory => 512 },
+        :configs  => { :cpus => 1, :memory => 256 },
     },
     :db02 => {
         :puppet   => 'db.pp',
-        :ip       => '192.168.20.21',
+        :ip       => '172.16.3.2',
         :forwards => { 3306 => 9936 },
-        :configs  => { :cpus => 1, :memory => 512 },
+        :configs  => { :cpus => 1, :memory => 256 },
     },
     :monitor => {
         :puppet   => 'monitor.pp',
-        :ip       => '192.168.30.30',
+        :ip       => '172.16.4.1',
         :forwards => { 80 => 9980 },
-        :configs  => { :cpus => 1, :memory => 512 },
+        :configs  => { :cpus => 1, :memory => 256 },
     },
 }
 
@@ -64,8 +64,12 @@ Vagrant.configure('2') do |config|
 
     instances.each do |name,opts|
         config.vm.define name do |config|
-            config.vm.box     = opts[:box] if opts[:box]
-            config.vm.box_url = opts[:box_url] if opts[:box_url]
+            if opts[:box]
+                config.vm.box = opts[:box]
+            end
+            if opts[:box_url]
+                config.vm.box_url = opts[:box_url]
+            end
 
             config.vm.provider :virtualbox do |virtualbox|
                 opts[:configs].each do |key,value|
@@ -83,12 +87,23 @@ Vagrant.configure('2') do |config|
 
             config.vm.network :private_network, ip: opts[:ip]
             config.vm.hostname = '%s.vagrant' % name.to_s.gsub('_', '-')
-            config.vm.hostname = opts[:hostname] if opts[:hostname]
+            if opts[:hostname]
+                config.vm.hostname = opts[:hostname]
+            end
 
             puppet_config = '%s.pp' % name
-            puppet_config = opts[:puppet] if opts[:puppet]
+            if opts[:puppet]
+                puppet_config = opts[:puppet]
+            end
 
-            config.vm.synced_folder 'www', '/var/www/' if opts[:shares]
+            if opts[:shares]
+                config.vm.synced_folder '.', '/vagrant', {
+                    :id    => 'vagrant-root',
+                    :owner => 'vagrant',
+                    :group => 'root',
+                    :extra => 'dmode=755,fmode=644',
+                }
+            end
 
             config.vm.provision :puppet do |puppet|
                 puppet.manifests_path = 'manifests'

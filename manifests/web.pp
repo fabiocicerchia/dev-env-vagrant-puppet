@@ -20,6 +20,35 @@ exec { 'update-package-list':
     require => Exec['fix-dns-issue'],
 }
 
+# UTILITY STUFF ################################################################
+class utils {
+    $utils = [ 'curl', 'git', 'git-flow', 'vim', 'wkhtmltopdf', 'make' ]
+
+    # Make sure some useful utiliaries are present
+    package { $utils:
+        ensure  => present,
+        require => Exec['fix-dns-issue'],
+    }
+
+    exec { 'vim-configs':
+        command => '/usr/bin/git clone git://github.com/fabiocicerchia/VIM-Configs.git /home/vagrant/VIM-Configs && cd /home/vagrant/VIM-Configs && git submodule init && git submodule update && ln -s /home/vagrant/VIM-Configs/.vimrc /home/vagrant/.vimrc && ln -s /home/vagrant/VIM-Configs/.vim /home/vagrant/.vim && vim +BundleInstall +qall',
+        require => [ Package['git'], Package['vim'] ],
+    }
+
+    exec { 'git-extras':
+        command => '/usr/bin/git clone --depth 1 https://github.com/visionmedia/git-extras.git /tmp/git-extras && cd /tmp/git-extras && sudo make install',
+        require => [ Package['git'], Package['make'] ],
+    }
+
+    # TODO: Configure it
+    exec { 'scm-breeze':
+        command => '/usr/bin/git clone git://github.com/ndbroadbent/scm_breeze.git ~/.scm_breeze && ~/.scm_breeze/install.sh',
+        require => Package['git'],
+    }
+}
+
+include utils
+
 # APACHE MODULE ################################################################
 class { 'apache':
     puppi   => true,
@@ -39,7 +68,7 @@ apache::module { 'ssl': }
 
 # Virtual Host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apache::vhost { 'default':
-    docroot     => '/var/www/',
+    docroot     => '/vagrant/www/',
     server_name => false,
     priority    => '',
     template    => 'apache/virtualhost/vhost.conf.erb',
@@ -62,6 +91,25 @@ php::module { 'imagick': }
 php::module { 'gd': }
 php::module { 'mysql': }
 php::module { 'xdebug': }
+
+# PHP-CS-FIXER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+exec { 'php-cs-fixer':
+    command => '/usr/bin/wget http://cs.sensiolabs.org/get/php-cs-fixer.phar -O /usr/local/bin/php-cs-fixer && sudo chmod a+x /usr/local/bin/php-cs-fixer',
+    require => Class['php'],
+}
+
+# COMPOSER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+exec { 'composer':
+    command => '/usr/bin/curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer',
+    require => [ Class['php'], Package['curl'] ],
+}
+
+
+# BEHAT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+exec { 'behat':
+    command => '/usr/bin/wget https://github.com/downloads/Behat/Behat/behat.phar -O /usr/local/bin/behat && sudo chmod a+x /usr/local/bin/behat',
+    require => Class['php'],
+}
 
 # PEAR Stuff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 exec { 'pear upgrade':

@@ -16,8 +16,27 @@ class { 'puppi':
 # UPDATE PACKAGE LIST ##########################################################
 exec { 'update-package-list':
     command => '/usr/bin/sudo /usr/bin/apt-get update',
-    onlyif  => '/bin/bash -c \'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))\''
+    onlyif  => '/bin/bash -c \'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))\'',
+    require => Exec['fix-dns-issue'],
 }
+
+# UTILITY STUFF ################################################################
+class utils {
+    $utils = [ 'vim', 'make' ]
+
+    # Make sure some useful utiliaries are present
+    package { $utils:
+        ensure  => present,
+        require => Exec['fix-dns-issue'],
+    }
+
+    exec { 'vim-configs':
+        command => '/usr/bin/git clone git://github.com/fabiocicerchia/VIM-Configs.git /home/vagrant/VIM-Configs && cd /home/vagrant/VIM-Configs && git submodule init && git submodule update && ln -s /home/vagrant/VIM-Configs/.vimrc /home/vagrant/.vimrc && ln -s /home/vagrant/VIM-Configs/.vim /home/vagrant/.vim && vim +BundleInstall +qall',
+        require => [ Package['git'], Package['vim'] ],
+    }
+}
+
+include utils
 
 # MYSQL MODULE #################################################################
 class { 'mysql':
