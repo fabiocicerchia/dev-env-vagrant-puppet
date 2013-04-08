@@ -68,7 +68,7 @@ apache::module { 'ssl': }
 
 # Virtual Host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apache::vhost { 'default':
-    docroot     => '/var/www/',
+    docroot     => '/vagrant/www/',
     server_name => false,
     priority    => '',
     template    => 'apache/virtualhost/vhost.conf.erb',
