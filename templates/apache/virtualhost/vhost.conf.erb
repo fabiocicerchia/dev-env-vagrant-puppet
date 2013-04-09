@@ -1,0 +1,135 @@
+<VirtualHost *:80>
+    ServerName   server.name.localhost
+    DocumentRoot /vagrant/www/
+
+    AddDefaultCharset UTF-8
+    DefaultLanguage   en-GB
+    SetEnv            TZ Europe/London
+    SetEnv            DEBUG_FLAG 0
+
+    # MIXED ###################################################################
+    ServerSignature Off
+    FileETag        MTime Size
+    HostnameLookups Off
+    TimeOut         300
+    TraceEnable     Off
+
+    # PROTECT FROM FLOOD
+    LimitRequestBody 10485760
+
+    # MISPELING ###############################################################
+    <IfModule mod_speling.c>
+        CheckSpelling On
+    </IfModule>
+
+    # LOG #####################################################################
+    LogLevel  warn
+
+    LogFormat "%h %l %u %t \"%r\" %>s %b" common
+    LogFormat "\"%r\" %D"                 measure-time
+
+    CustomLog /vagrant/www/logs/access.log     common
+    CustomLog /vagrant/www/logs/slow_pages.log measure-time
+
+    ErrorLog  /vagrant/www/logs/error.log
+
+    # SECURITY ################################################################
+    <IfModule mod_security.c>
+        SecFilterEngine On
+        SecAuditEngine RelevantOnly
+
+        SecFilterCheckURLEncoding On
+
+        SecFilterCheckCookieFormat On
+
+        SecAuditLog /vagrant/www/logs/audit.log
+        SecFilterDefaultAction "deny,log,auditlog,status:406"
+
+        Include /vagrant/www/web/modsecurity_crs_10_setup.conf
+        Include /vagrant/www/lib/vendor/owasp-modsecurity-crs/base_rules/modsecurity_crs_20_protocol_violations.conf
+        Include /vagrant/www/lib/vendor/owasp-modsecurity-crs/base_rules/modsecurity_crs_21_protocol_anomalies.conf
+        Include /vagrant/www/lib/vendor/owasp-modsecurity-crs/base_rules/modsecurity_crs_40_generic_attacks.conf
+        Include /vagrant/www/lib/vendor/owasp-modsecurity-crs/base_rules/modsecurity_crs_42_tight_security.conf
+        Include /vagrant/www/lib/vendor/owasp-modsecurity-crs/base_rules/modsecurity_crs_41_sql_injection_attacks.conf
+        Include /vagrant/www/lib/vendor/owasp-modsecurity-crs/base_rules/modsecurity_crs_41_xss_attacks.conf
+        Include /vagrant/www/lib/vendor/owasp-modsecurity-crs/base_rules/modsecurity_crs_45_trojans.conf
+    </IfModule>
+
+    # DIRECTORIES #############################################################
+    <Directory /vagrant/www/web>
+        Order allow,deny
+        Allow from all
+        AllowOverride All
+
+        Options All -Indexes
+   </Directory>
+
+   <Directory />
+       AllowOverride None
+
+       Options All -Indexes
+   </Directory>
+
+    # CACHE ###################################################################
+    <IfModule mod_cache.c>
+        CacheDefaultExpire 3600
+        CacheMaxExpire 86400
+
+        # CacheDirLevels * CacheDirLength < 20
+        <IfModule mod_disk_cache.c>
+            CacheRoot /vagrant/www/cache/apache
+            CacheEnable disk /
+
+            CacheDirLevels 5
+            CacheDirLength 3
+
+            CacheMinFileSize 1
+
+            CacheIgnoreHeaders Set-Cookie
+        </IfModule>
+
+        # MCacheMaxObjectCount * MCacheMaxObjectSize = MAX MEMORY ALLOCATED
+#        <IfModule mod_mem_cache.c>
+#            CacheEnable mem /
+#
+#            # 100MB
+#            MCacheSize 102400
+#            MCacheMaxObjectCount 512
+#            MCacheMinObjectSize 1
+#            MCacheMaxObjectSize 2048
+#        </IfModule>
+    </IfModule>
+
+    # EXPIRES #################################################################
+    <IfModule mod_expires.c>
+        ExpiresActive On
+
+        ExpiresByType image/x-icon             "access plus 1 month"
+        ExpiresByType image/gif                "access plus 1 month"
+        ExpiresByType image/jpeg               "access plus 1 month"
+        ExpiresByType image/png                "access plus 1 month"
+        ExpiresByType application/javascript   "access plus 2 week"
+        ExpiresByType application/x-javascript "access plus 2 week"
+        ExpiresByType text/css                 "access plus 2 week"
+    </IfModule>
+
+    # PHP #####################################################################
+    <IfModule mod_php5.c>
+        php_value date.timezone           Europe/London
+        php_value zlib.output_compression 16386
+        php_flag  allow_url_fopen         Off
+        php_flag  allow_url_include       Off
+        php_flag  display_errors          Off
+        php_flag  log_errors              On
+        php_flag  expose_php              Off
+        php_flag  file_uploads            Off
+        php_flag  magic_quotes_gpc        Off
+        php_value memory_limit            128M
+        php_value post_max_size           256K
+        php_flag  register_globals        Off
+        php_value session.save_path       /vagrant/www/tmp
+        php_value upload_max_filesize     256K
+        php_value upload_tmp_dir          /vagrant/www/tmp
+        php_flag  session.use_trans_sid   Off
+    </IfModule>
+</VirtualHost>
