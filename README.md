@@ -13,6 +13,7 @@ Installation
     dpkg -i /tmp/vagrant.deb
     git clone git://github.com/fabiocicerchia/dev-env-vagrant-puppet.git
     cd dev-env-vagrant-puppet
+    git submodule init && git submodule update
     ln -s Vagrantfile.single Vagrantfile # You can choose which environment use
     vagrant up
 
@@ -21,9 +22,15 @@ Virtual Machines
 ### Single Environment
 
  * Ubuntu 12.04 64bit
- * Apache 2.2
- * PHP 5.3
- * MySQL 5.5
+ * Apache 2.2.22
+ * PHP 5.3.10
+ * MySQL 5.5.29
+
+Optional:
+ * MongoDB 2.0.4
+ * Perl 5.14.2
+ * PostGreSQL 8.4.17
+ * Redis 2.2.12
 
 ### Multi Environment
 #### Load Balancer
@@ -33,17 +40,21 @@ Virtual Machines
 #### Web (web01 & web02)
 
  * Ubuntu 12.04 64bit
- * Apache 2.2
- * PHP 5.3
+ * Apache 2.2.22
+ * PHP 5.3.10
+
+Optional:
+ * Perl 5.14.2
 
 #### Database (db01 & db02)
 
  * Ubuntu 12.04 64bit
- * MySQL 5.5
+ * MySQL 5.5.29
 
-#### Monitor
-
- * Ubuntu 12.04 64bit
+Optional:
+ * MongoDB 2.0.4
+ * PostGreSQL 8.4.17
+ * Redis 2.2.12
 
 Configure your environment type
 -------------------------------

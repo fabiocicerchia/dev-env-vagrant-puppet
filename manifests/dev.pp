@@ -1,21 +1,23 @@
 # PUPPET #######################################################################
 group { 'puppet':
-    ensure => 'present'
+    ensure => 'present',
 }
 
 # FIX DNS ISSUE ################################################################
 exec { 'fix-dns-issue':
-    command => '/bin/echo "nameserver 8.8.8.8" | /usr/bin/sudo /usr/bin/tee /etc/resolv.conf > /dev/null'
+    command => '/bin/echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null',
 }
 
 # PUPPI ########################################################################
+# https://github.com/example42/puppi
+################################################################################
 class { 'puppi':
     install_dependencies => false,
 }
 
 # UPDATE PACKAGE LIST ##########################################################
 exec { 'update-package-list':
-    command => '/usr/bin/sudo /usr/bin/apt-get update',
+    command => '/usr/bin/sudo apt-get update',
     onlyif  => '/bin/bash -c \'exit $(( $(( $(date +%s) - $(stat -c %Y /var/lib/apt/lists/$( ls /var/lib/apt/lists/ -tr1|tail -1 )) )) <= 604800 ))\'',
     require => Exec['fix-dns-issue'],
 }
@@ -32,6 +34,7 @@ class utils {
 
     exec { 'vim-configs':
         command => '/usr/bin/git clone git://github.com/fabiocicerchia/VIM-Configs.git /home/vagrant/VIM-Configs && cd /home/vagrant/VIM-Configs && git submodule init && git submodule update && ln -s /home/vagrant/VIM-Configs/.vimrc /home/vagrant/.vimrc && ln -s /home/vagrant/VIM-Configs/.vim /home/vagrant/.vim && vim +BundleInstall +qall',
+        onlyif  => '/bin/bash -c \'exit $(( $( ls /home/vagrant/VIM-Configs 2>&1 | wc -l ) ))\'',
         require => [ Package['git'], Package['vim'] ],
     }
 
@@ -42,14 +45,21 @@ class utils {
 
     # TODO: Configure it
     exec { 'scm-breeze':
-        command => '/usr/bin/git clone git://github.com/ndbroadbent/scm_breeze.git ~/.scm_breeze && ~/.scm_breeze/install.sh',
+        command => '/usr/bin/git clone git://github.com/ndbroadbent/scm_breeze.git /home/vagrant/.scm_breeze && /home/vagrant/.scm_breeze/install.sh',
+        onlyif  => '/bin/bash -c \'exit $(( $( ls /home/vagrant/.scm_breeze 2>&1 | wc -l ) ))\'',
         require => Package['git'],
+    }
+
+    file { '/home/vagrant/.bashrc':
+        content => template('/vagrant/templates/system/.bashrc')
     }
 }
 
 include utils
 
 # APACHE MODULE ################################################################
+# https://github.com/example42/puppet-apache
+################################################################################
 class { 'apache':
     puppi   => true,
     monitor => no,
@@ -67,21 +77,58 @@ apache::module { 'rewrite': }
 apache::module { 'ssl': }
 
 # Virtual Host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+file { '/vagrant/www/logs':
+    ensure => '/vagrant/www/logs',
+    mode   => '0777',
+}
 apache::vhost { 'default':
     docroot     => '/vagrant/www/',
     server_name => false,
     priority    => '',
-    template    => 'apache/virtualhost/vhost.conf.erb',
+    template    => '/vagrant/templates/apache/virtualhost/vhost.conf.erb',
 }
 
 # MYSQL MODULE #################################################################
+# https://github.com/example42/puppet-mysql
+################################################################################
+# TODO: Set fixed version
 class { 'mysql':
     puppi         => true,
     root_password => 'root',
     require       => Exec['update-package-list'],
 }
 
+# MONGODB MODULE ###############################################################
+# https://github.com/example42/puppet-mongodb
+################################################################################
+#class { 'mongodb':
+#    version   => '1:2.0.4-1ubuntu2',
+##    use_10gen => true,
+#    puppi     => true,
+#    require   => Exec['update-package-list'],
+#}
+
+# POSTGRESQL MODULE ############################################################
+# https://github.com/example42/puppet-postgresql
+################################################################################
+#class { 'postgresql':
+#    version => '8.4.11-1',
+#    puppi   => true,
+#    require => Exec['update-package-list'],
+#}
+
+# REDIS MODULE #################################################################
+# https://github.com/example42/puppet-redis
+################################################################################
+# TODO: Set fixed version
+#class { 'redis':
+#    puppi   => true,
+#    require => Exec['update-package-list'],
+#}
+
 # PHP MODULE ###################################################################
+# https://github.com/example42/puppet-php
+################################################################################
 class { 'php':
     require => Exec['update-package-list'],
 }
@@ -102,19 +149,21 @@ php::module { 'xdebug': }
 # PHP-CS-FIXER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 exec { 'php-cs-fixer':
     command => '/usr/bin/wget http://cs.sensiolabs.org/get/php-cs-fixer.phar -O /usr/local/bin/php-cs-fixer && sudo chmod a+x /usr/local/bin/php-cs-fixer',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/local/bin/php-cs-fixer 2>&1 | wc -l ) ))\'',
     require => Class['php'],
 }
 
 # COMPOSER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 exec { 'composer':
     command => '/usr/bin/curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/local/bin/composer 2>&1 | wc -l ) ))\'',
     require => [ Class['php'], Package['curl'] ],
 }
-
 
 # BEHAT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 exec { 'behat':
     command => '/usr/bin/wget https://github.com/downloads/Behat/Behat/behat.phar -O /usr/local/bin/behat && sudo chmod a+x /usr/local/bin/behat',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/local/bin/behat 2>&1 | wc -l ) ))\'',
     require => Class['php'],
 }
 
@@ -140,7 +189,7 @@ exec { 'pear update-channels' :
 exec { 'pear install phpunit':
     command => '/usr/bin/pear install --alldeps pear.phpunit.de/PHPUnit',
     creates => '/usr/bin/phpunit',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpunit | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpunit 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -148,7 +197,7 @@ exec { 'pear install phpunit':
 exec { 'pear install phploc':
     command => '/usr/bin/pear install --alldeps pear.phpunit.de/phploc',
     creates => '/usr/bin/phploc',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phploc | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phploc 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -156,7 +205,7 @@ exec { 'pear install phploc':
 exec { 'pear install phpcpd':
     command => '/usr/bin/pear install --alldeps pear.phpunit.de/phpcpd',
     creates => '/usr/bin/phpcpd',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpcpd | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpcpd 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -164,7 +213,7 @@ exec { 'pear install phpcpd':
 exec { 'pear install phpdcd':
     command => '/usr/bin/pear install --alldeps pear.phpunit.de/phpdcd-beta',
     creates => '/usr/bin/phpdcd',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpdcd | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpdcd 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -172,7 +221,7 @@ exec { 'pear install phpdcd':
 exec { 'pear install phpcs':
     command => '/usr/bin/pear install --alldeps PHP_CodeSniffer',
     creates => '/usr/bin/phpcs',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpcs | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpcs 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -180,7 +229,7 @@ exec { 'pear install phpcs':
 exec { 'pear install pdepend':
     command => '/usr/bin/pear install --alldeps pear.pdepend.org/PHP_Depend',
     creates => '/usr/bin/pdepend',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/pdepend | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/pdepend 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -188,7 +237,7 @@ exec { 'pear install pdepend':
 exec { 'pear install phpmd':
     command => '/usr/bin/pear install --alldeps pear.phpmd.org/PHP_PMD',
     creates => '/usr/bin/phpmd',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpmd | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpmd 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -196,7 +245,7 @@ exec { 'pear install phpmd':
 exec { 'pear install PHP_CodeBrowser':
     command => '/usr/bin/pear install --alldeps pear.phpunit.de/PHP_CodeBrowser',
     creates => '/usr/bin/phpcb',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpcb | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpcb 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -204,7 +253,7 @@ exec { 'pear install PHP_CodeBrowser':
 exec { 'pear install phpcov':
     command => '/usr/bin/pear install --alldeps pear.phpunit.de/phpcov',
     creates => '/usr/bin/phpcov',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpcov | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpcov 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
@@ -218,12 +267,29 @@ exec { 'pear install phpcov':
 exec { 'pear install phpDocumentor':
     command => '/usr/bin/pear install --alldeps pear.phpdoc.org/phpDocumentor-2.0.0a12',
     creates => '/usr/bin/phpdoc',
-    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpdoc | wc -l ) == 0 ))\'',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/bin/phpdoc 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
 }
 
 # Install vfsStream
 exec { 'pear install vfsStream':
     command => '/usr/bin/pear install --alldeps pear.bovigo.org/vfsStream-beta',
+    onlyif  => '/bin/bash -c \'exit $(( $( ls /usr/share/php/vfsStream 2>&1 | wc -l ) ))\'',
     require => Exec['pear update-channels']
+}
+
+# PERL MODULE ##################################################################
+# https://github.com/example42/puppet-perl
+################################################################################
+class { 'perl':
+    require => Exec['update-package-list'],
+}
+
+# SENDMAIL MODULE ##############################################################
+# https://github.com/example42/puppet-sendmail
+################################################################################
+class { 'sendmail':
+    version => '8.14.4-2ubuntu2',
+    puppi   => true,
+    require => Exec['update-package-list'],
 }
